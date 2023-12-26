@@ -1,0 +1,28 @@
+{
+  "ego_car":{
+    "width":2.0,
+    "lenth":5.0,
+    "rear_hang":1.0,
+    "star_pos":[0,0,0],
+    "ds_arr":[1.5,5,4,5],
+    "rou_arr":[0,0.2,0.1,-0.2]
+   },
+   "sensor": {
+        "num":4,
+     "camera_arr":
+     [ {"camera_name": "front","star_pos":[2.5,0,0],"DIM":512,"FOV": 120 },
+       {"camera_name": "rear" ,"star_pos":[-2.5,0,180],"DIM":512,"FOV": 120 },
+       {"camera_name": "left" ,"star_pos":[0,1,90],"DIM":512,"FOV": 120 },
+       {"camera_name": "right","star_pos":[0,-1,-90],"DIM":512,"FOV": 120 }
+     ]
+    }
+  ,
+   "objects": {
+        "num":5,
+        "object_arr":
+         [
+          {"object_id": 1,"color_id": 1,"object_color":"red","object_x":[1,2,3],"object_y":[-3,-2,-3]}
+        ]
+    }
+}
+

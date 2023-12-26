@@ -1,0 +1,20 @@
+{
+     "world_para": {
+     "time_step":0.1,
+     "grid_step":0.05,
+     "grid_xrange_min":-10,
+     "grid_yrange_min":-10,
+     "grid_xrange_max": 10,
+     "grid_xrange_max": 10
+
+   },
+   "objects": {
+        "num":6,
+        "object_arr":
+         [{"object_id": 0,"type": "small_car_1108", "star_pos":[0 ,0 , 0],"ds_arr":[1.5,5,4,5],"rou_arr":[0,0.2,0.1,-0.2],"speed_arr":[1,2,2,1]},
+          {"object_id": 1,"type": "Acar_red",  "star_pos":[ 8, 8, 90],"ds_arr":[5],"rou_arr":[0],"speed_arr":[2]}
+        ]
+    }
+}
+
+
