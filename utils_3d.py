@@ -8,6 +8,8 @@ from vispy import app, visuals, scene
 
 from vispy import io
 from PIL import Image
+import os 
+from basic_f import * 
 
 def get_polygon_center(polygon):
     sum_x=0
@@ -299,7 +301,7 @@ def get_fold_from_ini(path):
 def load_json_plan(path,scene_3d,global_mesh):
     with open(path,'r') as f:
         json_obj=json.loads(f.read())
-#第一个就是自车
+    #第一个就是自车
     max_step=0
     total_pos_arr={}
     xy_range_dict = {}
@@ -347,7 +349,159 @@ def load_json_plan(path,scene_3d,global_mesh):
         xy_range_dict[item['object_id']]=xy_range
     return json_obj,total_pos_arr,xy_range_dict,max_step
 
+def load_log_data(path,scene_3d,global_mesh,cur_frame_num):
+    points_arr_dict = {}
+    is_planner_ready = False
+    is_frame_ready = False
 
+    if(os.path.exists(path)):
+        log_file = open(path,'r')
+        log_file_line = log_file.readline() 
+        max_frame_num = 1000
+
+        origin_slot_corners_x = []
+        origin_slot_corners_y = []
+        slot_corners_x = []
+        slot_corners_y = []
+
+        target_pose_x = []
+        target_pose_y = []
+        target_pose_phi = []
+
+        start_pose_x = []
+        start_pose_y = []
+        start_pose_phi = []
+
+        sw_pose_x = []
+        sw_pose_y = []
+        sw_pose_theat = []
+
+        T_lines_x = []
+        T_lines_y = []
+
+        obs_point_x = []
+        obs_point_y = []
+        
+
+        obs_line_x = []
+        obs_line_y = []
+
+        path_x = []
+        path_y = []
+        path_phi = []
+        
+        odom_x = []
+        odom_y = []
+        odom_phi = []
+
+        while log_file_line:
+            if log_file_line.find("========== frame_num: " + str(cur_frame_num)) != -1:
+                is_frame_ready = True
+                log_file_line = log_file.readline()
+                continue
+            if log_file_line.find("ENTER Perpendicular PLAN") != -1:
+                is_planner_ready = True
+                log_file_line = log_file.readline()
+                continue
+            if is_frame_ready and is_planner_ready:
+                if log_file_line.find("odo_slot_corners:") != -1:
+                    line_vec = log_file_line.split()
+                    odo_slot_corners_x.append(float(line_vec[-4]))
+                    odo_slot_corners_y.append(float(line_vec[-2]))
+
+                if log_file_line.find("odo_bottom_slot_corners:") != -1:
+                    line_vec = log_file_line.split()
+                    odo_bottom_slot_corners_x.append(float(line_vec[-4]))
+                    odo_bottom_slot_corners_y.append(float(line_vec[-2]))
+
+                if log_file_line.find("original_slot_corners:") != -1:
+                    line_vec = log_file_line.split()
+                    origin_slot_corners_x.append(float(line_vec[-4]))
+                    origin_slot_corners_y.append(float(line_vec[-2]))
+
+                if log_file_line.find("[PERP] slot_corners:") != -1:
+                    line_vec = log_file_line.split()
+                    slot_corners_x.append(float(line_vec[-4]))
+                    slot_corners_y.append(float(line_vec[-2]))
+
+                if log_file_line.find("PERP: global_target_pose") != -1:
+                    line_vec = log_file_line.split()
+                    target_pose_x.append(float(line_vec[-4][:-2]))
+                    target_pose_y.append(float(line_vec[-2][:-8]))
+                    target_pose_phi.append(float(line_vec[-1]))
+
+                if log_file_line.find("safe_sweet_pose:") != -1:
+                    line_vec = log_file_line.split()
+                    sw_pose_x.append(float(line_vec[-6]))
+                    sw_pose_y.append(float(line_vec[-4]))
+                    sw_pose_theat.append(float(line_vec[-2]))
+
+                if log_file_line.find("[PERP] T_lines:") != -1:
+                    line_vec = log_file_line.split()
+                    T_lines_x.append(float(line_vec[-4]))
+                    T_lines_y.append(float(line_vec[-2]))
+                    T_lines_x.append(float(line_vec[-10]))
+                    T_lines_y.append(float(line_vec[-8]))
+
+                if log_file_line.find("obs_point:") != -1:
+                    line_vec = log_file_line.split()
+                    obs_point_x.append(float(line_vec[-4]))
+                    obs_point_y.append(float(line_vec[-2]))
+
+                if log_file_line.find("obs_line:") != -1:
+                    line_vec = log_file_line.split()
+                    obs_line_x.append(float(line_vec[-4]))
+                    obs_line_y.append(float(line_vec[-2]))
+                    obs_line_x.append(float(line_vec[-10]))
+                    obs_line_y.append(float(line_vec[-8]))
+
+                if log_file_line.find("path_point:") != -1:
+                    line_vec = log_file_line.split()
+                    path_x.append(float(line_vec[-6]))
+                    path_y.append(float(line_vec[-4]))
+                    path_phi.append(float(line_vec[-2]))
+                
+                if log_file_line.find("receive odom data") != -1:
+                    line_vec = log_file_line.split()
+                    odom_x.append(float(line_vec[-6][:-1]))
+                    odom_y.append(float(line_vec[-3][:-1]))
+                    odom_phi.append(float(line_vec[-1]))
+
+                if log_file_line.find("PERP: init_pose") != -1:
+                    line_vec = log_file_line.split(":")
+                    start_pose_x.append(float(line_vec[-3].split(",")[0]))
+                    start_pose_y.append(float(line_vec[-2].split(",")[0]))
+                    start_pose_phi.append(float(line_vec[-1]))
+
+            log_file_line = log_file.readline()
+
+        log_file.close()
+
+        points_arr_dict["obs_point"] = np.concatenate((np.array(obs_point_x).reshape(-1,1),np.array(obs_point_y).reshape(-1,1),np.zeros(len(obs_point_x)).reshape(-1,1)),axis = 1)
+        points_arr_dict["path_point"] = np.concatenate((np.array(path_x).reshape(-1,1),np.array(path_y).reshape(-1,1), np.zeros(len(path_x)).reshape(-1,1)),axis = 1)
+
+        points_arr_dict["odom"] = np.concatenate((np.array(odom_x).reshape(-1,1),np.array(odom_y).reshape(-1,1), np.array(odom_phi).reshape(-1,1)),axis = 1)
+        
+        points_arr_dict["T_line"] = np.concatenate((np.array(T_lines_x).reshape(-1,1),np.array(T_lines_y).reshape(-1,1)),axis = 1)
+
+        points_arr_dict["obs_line"] = np.concatenate((np.array(obs_line_x).reshape(-1,1),np.array(obs_line_y).reshape(-1,1)),axis = 1)
+
+        points_arr_dict["slot_corners"] = np.concatenate((np.array(slot_corners_x).reshape(-1,1),np.array(slot_corners_y).reshape(-1,1)),axis = 1)
+
+        points_arr_dict["original_slot_corners"] = np.concatenate((np.array(origin_slot_corners_x).reshape(-1,1),np.array(origin_slot_corners_y).reshape(-1,1)),axis = 1)
+
+        points_arr_dict["global_target_pose"] = np.concatenate((np.array(target_pose_x).reshape(-1,1),np.array(target_pose_y).reshape(-1,1),np.array(target_pose_phi).reshape(-1,1)),axis = 1)
+        
+
+    return points_arr_dict
+
+
+def Add(list1, list2):
+	list3 = []
+	for i in range(len(list1)):
+		list3.append(list1[i] + list2[i])
+	return list3
+        
 
 def load_json_world(path,scene_3d,global_mesh):
     with open(path,'r') as f:

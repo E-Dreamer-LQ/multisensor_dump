@@ -13,7 +13,6 @@ import pyqtgraph as pg
 # UI
 #############################################################################
 
-
 def get_image_disp_canvas(layout_image,xpix,ypix):
     canvas_2d = scene.SceneCanvas(keys='interactive', show=True)
     view_2d = canvas_2d.central_widget.add_view()
@@ -28,10 +27,11 @@ def get_image_disp_canvas(layout_image,xpix,ypix):
 class button_2d(QVBoxLayout):
     def __init__(self, data_thread):
         super(button_2d, self).__init__()
-        self.btn_1 = QPushButton("1.try_it    ")
-        self.btn_2 = QPushButton("2.func      ")
+        self.btn_1 = QPushButton("1.show    ")
+        self.btn_2 = QPushButton("2.egobox      ")
         self.btn_3 = QPushButton("3.clear     ")
-        self.btn_4 = QPushButton("4.save      ")
+        self.btn_4 = QPushButton("4.next      ")
+        self.btn_5 = QPushButton("4.last      ")
         self.line_input = QLineEdit()
         self.line_input.editingFinished.connect(self.update_file_name)
         up_layout = QHBoxLayout()
@@ -40,7 +40,8 @@ class button_2d(QVBoxLayout):
         up_layout.addWidget(self.btn_2)
         up_layout.addWidget(self.btn_3)
         down_layout.addWidget(self.btn_4)
-        down_layout.addWidget(self.line_input)
+        down_layout.addWidget(self.btn_5)
+        # down_layout.addWidget(self.line_input)
         self.addLayout(up_layout, stretch=1)
         self.addLayout(down_layout, stretch=1)
         self.data_thread = data_thread
@@ -48,10 +49,12 @@ class button_2d(QVBoxLayout):
         self.btn_2.clicked.connect(self.action2)
         self.btn_3.clicked.connect(self.action3)
         self.btn_4.clicked.connect(self.action4)
+        self.btn_5.clicked.connect(self.action5)
     def action1(self): self.data_thread.from_uisig_button_com.emit(1)  # save commond
     def action2(self): self.data_thread.from_uisig_button_com.emit(2)  # save commond
     def action3(self): self.data_thread.from_uisig_button_com.emit(3)  # save commond
     def action4(self): self.data_thread.from_uisig_button_com.emit(4)  # save commond
+    def action5(self): self.data_thread.from_uisig_button_com.emit(5)  # save commond
     def update_file_name(self):
         self.data_thread.from_uisig_line_input_disp.emit(self.line_input.text())
 
@@ -112,7 +115,7 @@ class FileTreeView(QVBoxLayout):
         self.tree = QTreeView()
         self.tree.setModel(self.model)
         self.model.setNameFilterDisables(False)
-        self.model.setNameFilters(['*.xodr', '*.xosc', '*.obj', '*.json', '*.xmap'])
+        self.model.setNameFilters(['*.xodr', '*.xosc', '*.obj', '*.json', '*.xmap', '*.log'])
         self.model.setRootPath(os.path.expanduser('~'))
         self.tree.setRootIndex(self.model.index('./'))
         self.tree.doubleClicked.connect(self.on_file_selected)
@@ -134,12 +137,12 @@ class InputView(QVBoxLayout):
         self.combox1.addItems(['3d_view', '2d_view','3d_fly'])
         self.combox2.addItems(['0.05m', '0.1m', '0.2m', '1.0m'])
         self.combox1.currentIndexChanged[int].connect(self.update_comb1)
-        self.combox2.currentIndexChanged[int].connect(self.update_comb2)
+        # self.combox2.currentIndexChanged[int].connect(self.update_comb2)
         #########################################################################
         self.text_show=QLabel()
         self.text_infor=QLabel()
         self.button_2d=button_2d(data_thread)
-        self.text_show.setText('please input:x(m),y(m),theta(deg)')
+        self.text_show.setText('please input:frame num')
         self.text_infor.setText('init state')
         self.text_editor=QTextEdit()
         self.list_disp=list_objs(data_thread)
@@ -149,7 +152,7 @@ class InputView(QVBoxLayout):
         comblayout=QVBoxLayout()
         comblayout.addLayout(filetree_disp,stretch=10)
         comblayout.addWidget(self.combox1)
-        comblayout.addWidget(self.combox2)
+        # comblayout.addWidget(self.combox2)
         comblayout.addWidget(self.text_show)
         comblayout.addWidget(self.text_editor,stretch=1)
         comblayout.addWidget(self.slider)
@@ -168,8 +171,9 @@ class InputView(QVBoxLayout):
         input_text=self.text_editor.toPlainText()
         pts_total_num = input_text.count(',')
         changeline_total_num = input_text.count('\n')
-        # print(input_text)
-        if pts_total_num==2 and changeline_total_num==1:
+        # print("input_text",input_text)
+        # if pts_total_num==2 and changeline_total_num==1:
+        if len(input_text) > 2 and input_text.count('\n'):
             self.data_thread.from_uisig_textinput_com.emit(input_text)
 
 
@@ -208,11 +212,11 @@ class data_disp(QWidget):
         ########### 1 chart
         win_charts = pg.GraphicsLayoutWidget(show=True)
         win_charts.setBackground('w')
-        self.plot_1 = win_charts.addPlot(title="danger_dist")
+        self.plot_1 = win_charts.addPlot(title="remain_distance")
         # self.plot_1.setLabel(axis='left', text='danger_dist / m')  # 靠左
         # self.plot_1.setLabel(axis='bottom', text='step')
         self.plot_1.setRange(xRange=[0,100], yRange=[0,12], padding=0)
-        self.plot_2 = win_charts.addPlot(title="path_div")
+        self.plot_2 = win_charts.addPlot(title="ego_speed")
         chart_layout.addWidget(win_charts, stretch=1)
         ##################################
         self.lane_vis = scene.visuals.Line(parent=self.view_3d.scene)
@@ -224,6 +228,8 @@ class data_disp(QWidget):
         self.from_uisig_textinput_com.connect(self.up_data_hmi_data)
         self.data_hmi_data = np.zeros((3, 3))
         self.init_world()
+        self.cur_frame_num = 44 
+        self.data_path = ''
 
     def init_world(self):
         tt = self.view_3d.children[0]
@@ -236,6 +242,7 @@ class data_disp(QWidget):
         self.xy_range_dict={}
         self.cur_pos_dict={}
         self.slide_range=0
+        self.slide_index = 0 
         self.world_2d_data= None
         self.path_div = 0
         self.dange_dist = 10
@@ -248,16 +255,24 @@ class data_disp(QWidget):
         self.image_pod1.set_data(self.image_mov1)
         self.image_pod1.update()
         self.scatter_pt1 = scene.visuals.Markers(parent=self.view_3d.scene)
+        self.scatter_pt2 = scene.visuals.Markers(parent=self.view_3d.scene)
+        self.scatter_pt3 = scene.visuals.Markers(parent=self.view_3d.scene)
+        self.slot_vis = scene.visuals.Line(parent=self.view_3d.scene)
+        self.origin_slot_vis = scene.visuals.Line(parent=self.view_3d.scene)
+        self.target_pose_vis = scene.visuals.Line(parent=self.view_3d.scene)
+        self.toconnect = np.array([[0,1], [1,2], [2,3], [3,0]])
+
         self.grid_map_size=20#meter
         self.map_image_fac=0.05#meter
         self.map_img_size=int(self.grid_map_size/self.map_image_fac)#
-        #self.object_arr=
+        
     def up_data_hmi_data(self,text_data):
-        data_list = text_data.split(',')
-        self.data_hmi_data[0, 0] = float(data_list[0])
-        self.data_hmi_data[0, 1] = float(data_list[1])
-        self.data_hmi_data[1, 2] = float(data_list[2])
-        self.to_uisig_text_infor.emit('put position:' + text_data)
+        # data_list = text_data.split(',')
+        # self.data_hmi_data[0, 0] = float(data_list[0])
+        # self.data_hmi_data[0, 1] = float(data_list[1])
+        # self.data_hmi_data[1, 2] = float(data_list[2])
+        self.cur_frame_num = int(text_data)
+        self.to_uisig_text_infor.emit('frame num:' + text_data)
     def convert_ground_to_img(self,pt_arr):#pt [[x0,y0,z0],[x1,y1,z1],...]
         self.map_x0=0
         self.map_y0=0
@@ -269,89 +284,59 @@ class data_disp(QWidget):
         return pt_img
 
     def user_change_slide(self,slide_index):
+        self.cur_frame_num = slide_index
+        print("cur_frame_num: ",self.cur_frame_num)
+        self.points_arr_dict = load_log_data(self.data_path,self.view_3d,self.global_mesh,self.cur_frame_num) 
+        if len(self.points_arr_dict)>0:#data valid
+            self.to_uisig_text_infor.emit('slide move to:' + str(slide_index))
+            obs_point = self.points_arr_dict["obs_point"]
+            self.scatter_pt1.set_data(obs_point, edge_color=(1, 0, 1, .7), face_color=(1, 1, 0, .7), size=4)
+            path_point = self.points_arr_dict["path_point"]
+            self.scatter_pt2.set_data(path_point, edge_color=(0, 0, 1, .7), face_color=(1, 1, 0, .7), size=4)
 
-            if len(self.points_arr_dict)>0:#data valid
-                self.to_uisig_text_infor.emit('slide move to:' + str(slide_index))
-                ego_index = 0
-                ego_path = self.points_arr_dict[0]
-                min_danger=20
-                ground_point=np.zeros((1, 3))
-                self.image_mov1 = np.ones((400, 400, 3), dtype=np.uint8)# to show
-                for obj_index,item in enumerate(self.global_mesh):
-                        points_arr=self.points_arr_dict[obj_index]
-                        xy_range=self.xy_range_dict[obj_index]
-                        if slide_index < len(points_arr):
-                            data_index=slide_index
-                            cur_pos=points_arr[data_index]# in theta
-                            new_local_data=np.zeros((2,3))
-                            new_local_data[0,0]=cur_pos[0]
-                            new_local_data[0,1]=cur_pos[1]
-                            new_local_data[1,2]=cur_pos[2]*180/math.pi
-                            obj_transform = hmi_data_to_transform(new_local_data)
-                            #self.global_mesh[1].transform = obj_transform
-                            t1=time.time()
-                            dt = time.time() - t1
-                            item.transform = obj_transform
-                        else:
-                            data_index=len(points_arr)-1
-                            cur_pos=points_arr[data_index]
-                        self.cur_pos_dict[obj_index]= cur_pos
-                        ##########################################
-                        # draw cost map
-                        cur_local_bound = np.zeros((4, 3))
-                        cur_local_bound[0][0] = xy_range[0]
-                        cur_local_bound[1][0] = xy_range[1]
-                        cur_local_bound[2][0] = xy_range[1]
-                        cur_local_bound[3][0] = xy_range[0]
-                        cur_local_bound[0][1] = xy_range[3]
-                        cur_local_bound[1][1] = xy_range[3]
-                        cur_local_bound[2][1] = xy_range[2]
-                        cur_local_bound[3][1] = xy_range[2]
-                        cur_global_bound = points_2d_trans_by_pos(cur_local_bound, cur_pos)
-                        points_2d = project_2d_points(self.cur_pos_dict[0], cur_global_bound)  # to ego car
-                        pt_on_image = self.convert_ground_to_img(points_2d)
-                        ##########################################
-                        ground_point = np.vstack((ground_point, cur_global_bound))
-                        if obj_index==0:
-                            ego_index=data_index
-                        if obj_index>0: # 非自身
-                            cv2.polylines(self.image_mov1, [pt_on_image], True, (255, 255, 0), 3)
-                            dange_dist=check_mesh_in_path(cur_pos,xy_range,ego_path,ego_index)
-                            if dange_dist>0:#and dange_dist<10:
-                                print(dange_dist,'dange_dist')
-                                min_danger=min(min_danger,dange_dist)
+            odom = self.points_arr_dict["odom"]
+            self.scatter_pt3.set_data(odom, edge_color=(0, 1, 1, .7), face_color=(1, 1, 0, .7), size=4)
 
-                self.scatter_pt1.set_data(ground_point, edge_color=(1, 0, 1, .7), face_color=(1, 1, 0, .7), size=4)
-                self.plot1_x_arr.append(slide_index)
-                self.plot1_y_arr.append(min_danger)
-                self.plot_1.plot(x=self.plot1_x_arr,y=self.plot1_y_arr,pen=(0, 0, 255))
-                self.image_pod1.set_data(self.image_mov1)
-                self.image_pod1.update()
-                ####### update grid map
-            else:
-                self.to_uisig_text_infor.emit('not load valid json' )
+            slot_corners = self.points_arr_dict["slot_corners"]
+            self.slot_vis.set_data(pos=slot_corners, connect=self.toconnect)
 
-    # def draw_map_image(self):
-    #
-    #
-    #     for index in range(index_len):
-    #         triangle_cnt = np.array([pt1[index], pt2[index], pt3[index], pt4[index]])
-    #         color = gray_z_arr_ave[index][0]
-    #         color = int(color)
-    #         cv2.drawContours(img_map, [triangle_cnt], 0, color, -1)
-    #     return img_map
+            original_slot_corners = self.points_arr_dict["original_slot_corners"]
+            self.origin_slot_vis.set_data(pos=original_slot_corners, connect=self.toconnect,color=(0.5,0.8,0.3))
 
-
+            ####  target pose show 
+            global_target_pose = self.points_arr_dict["global_target_pose"]
+            if global_target_pose.shape[0] != 0:
+                target_pose_arr = VehicleBox2d([global_target_pose[0][0], global_target_pose[0][1]],global_target_pose[0][2],list())
+                self.target_pose_vis.set_data(pos=target_pose_arr, connect=self.toconnect,color=(1,0,0))
+        else:
+            self.to_uisig_text_infor.emit('not load valid log' )
 
     def user_press_botton(self,new_state):
         if new_state == 3:  ## clear world
             self.init_world()
             pass
         elif new_state == 4:  ## save image
-            line_arr = np.array([[1,1],[2,3]])
-            line_disp = scene.visuals.LinePlot(data=line_arr, color='green')
-            self.view_3d.add(line_disp)
-            self.global_mesh.append(line_disp)
+            # line_arr = np.array([[1,1],[2,3]])
+            # line_disp = scene.visuals.LinePlot(data=line_arr, color='green')
+            # self.view_3d.add(line_disp)
+            # self.global_mesh.append(line_disp)
+            self.cur_frame_num += 1 
+            self.user_change_slide(self.cur_frame_num)
+            pass 
+        elif new_state == 5: 
+            self.cur_frame_num -= 1 
+            self.user_change_slide(self.cur_frame_num)
+
+        elif new_state == 2: 
+            path_point = self.points_arr_dict["path_point"]
+            for i in range(path_point.shape[0]): 
+                self.ego_box_vis = scene.visuals.Line(parent=self.view_3d.scene)
+                egobox_arr = VehicleBox2d([path_point[i][0], path_point[i][1]],path_point[i][2],list())
+                self.ego_box_vis.set_data(pos=egobox_arr, connect=self.toconnect,color=(0.8,0.8,0.3))
+
+        elif new_state == 1: 
+            pass 
+
 
     def update_filepath(self, path):
         if os.path.isdir(path):
@@ -370,10 +355,17 @@ class data_disp(QWidget):
             elif (file_type == 'json'):
                 self.init_world()
                 self.world_2d_data,self.points_arr_dict,self.xy_range_dict,max_step=load_json_plan(path,self.view_3d,self.global_mesh)
-
                 self.slide_range=max_step-1
                 self.to_uisig_slide_range.emit(self.slide_range)
                 pass
+            elif (file_type == 'log'):
+                self.init_world() 
+                self.data_path = path 
+                # self.points_arr_dict = load_log_data(path,self.view_3d,self.global_mesh,self.cur_frame_num) 
+                self.slide_range = 1000
+                self.to_uisig_slide_range.emit(self.slide_range)        
+                pass 
+     
     def change_viewtype(self,type):
         if type==0:
             self.view_3d.camera = 'turntable'
@@ -381,8 +373,6 @@ class data_disp(QWidget):
             self.view_3d.camera = 'panzoom'
         else:
             self.view_3d.camera = 'fly'
-
-
 
 class MainWindow(QMainWindow):
     def __init__(self, *args):
